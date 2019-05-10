@@ -1,0 +1,51 @@
+{
+    "$schema": "http://schema.management.azure.com/schemas/2015-01-01/deploymentTemplate.json#",
+    "contentVersion": "1.0.0.0",
+    "parameters": {
+        "location": {
+            "type": "string"
+        },
+        "hubName": {
+            "type": "string",
+            "defaultValue": "[take(concat('BenchmarktestIoTHub-', uniqueString(resourceGroup().id)), 49)]"
+        },
+        "sku": {
+            "type": "string"
+        },
+        "skutier": {
+            "type": "string"
+        },
+        "partitioncount": {
+            "type": "int"
+        }
+    },
+    "variables": {},
+    "resources": [
+        {
+            "name": "[parameters('hubName')]",
+            "type": "Microsoft.Devices/IotHubs",
+            "apiVersion": "2018-04-01",
+            "location": "[parameters('location')]",
+            "sku": {
+                "name": "[parameters('sku')]",
+                "tier": "[parameters('skutier')]",
+                "capacity": 1
+            },
+            "properties": {
+                "location": "[parameters('location')]",
+                "eventHubEndpoints": {
+                    "events": {
+                        "retentionTimeInDays": 1,
+                        "partitionCount": "[parameters('partitioncount')]"
+                    }
+                }
+            }
+        }
+    ],
+    "outputs": {
+        "hubName": {
+            "type": "string",
+            "value": "[parameters('hubName')]"
+        }
+    }
+}
