@@ -43,9 +43,37 @@ Function Connect-AzureSubscription() {
 
 ###########################################################################
 #
+# Confirm-Delete - confirms that the user wants to continue with the 
+# deletion of the RG
+# 
+Function Confirm-Delete() {
+    Write-Host @"
+    
+You are about to delete the Resource Group:
+    - Resource group $ResourceGroupName
+
+Are you sure you want to continue?
+"@
+
+    while ($True) {
+        $answer = Read-Host @"
+    [Y] Yes [N] No (default is "Y")
+"@
+
+        switch ($Answer) {
+            "Y" { return }
+            "" { return }
+            "N" { exit }
+        }
+    }
+}
+
+###########################################################################
+#
 # Main 
 # 
 Connect-AzureSubscription
+Confirm-Delete
 Write-Host "Removing Resource Group $ResourceGroupName and all Resources in it"
 Remove-AzResourceGroup -Name $ResourceGroupName -Force
 Write-Host "$ResourceGroupName successfully deleted"

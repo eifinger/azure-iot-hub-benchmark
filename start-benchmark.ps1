@@ -24,7 +24,17 @@ param
     [string] $Sku,
 
     [Parameter(Mandatory = $True)]
-    [int16] $PartitionCount
+    [int16] $PartitionCount,
+
+    [Parameter(Mandatory = $False)]
+    [int16] $DeviceCount = 500,
+
+    [Parameter(Mandatory = $False)]
+    [int16] $MaxMessages = 50,
+
+    [Parameter(Mandatory = $False)]
+    [int32] $MessageSize = 265000
+
 )
 
 $ErrorActionPreference = "Stop"
@@ -64,10 +74,13 @@ Connect-AzureSubscription
 Write-Host "Creating IoT Hub"
 $iotHubName = Invoke-Expression "$PSScriptRoot\create-iot-hub.ps1 -ResourceGroupName '$ResourceGroupName' -Location '$Location' -Sku $Sku -PartitionCount $PartitionCount"
 
-$connectionString = $(Get-AzIotHubConnectionString -ResourceGroupName $ResourceGroupName -Name $iotHubName -KeyName "iothubowner").PrimaryKey
-
+$connectionString = $(Get-AzIotHubConnectionString -ResourceGroupName $ResourceGroupName -Name $iotHubName -KeyName "iothubowner").PrimaryConnectionString
 Write-Host "Starting CSharp Benchmark"
 
-Start-Process -FilePath "dotnet" -WorkingDirectory "$PSScriptRoot" -ArgumentList "$PSScriptRoot\csharp\azure-iot-hub-benchmark\bin\Debug\netcoreapp2.2\azure-iot-hub-benchmark.dll --iothubconnectionstring $connectionString" -NoNewWindow
+Start-Process -FilePath "dotnet" `
+    -WorkingDirectory "$PSScriptRoot" `
+    -ArgumentList "$PSScriptRoot\csharp\azure-iot-hub-benchmark\bin\Debug\netcoreapp2.2\azure-iot-hub-benchmark.dll --iothubconnectionstring $connectionString --devicecount $DeviceCount --maxmessages $MaxMessages --messagesize $MessageSize" `
+    -NoNewWindow `
+    -Wait
 
 Invoke-Expression "$PSScriptRoot\delete-resource-group.ps1 -ResourceGroupName '$ResourceGroupName'"

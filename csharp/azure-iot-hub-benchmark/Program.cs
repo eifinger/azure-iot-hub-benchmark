@@ -39,6 +39,8 @@ namespace azure_iot_hub_benchmark
     {
         static string IoTDevicePrefix = "loadTest";
         static string commonKey = "PICHP911sX4rh9OIw3ucDzkBYYb7jwxVet8vcqySYH8="; // random base64 string
+
+        static int MessageSize;
  
         static void Main(string[] args)
         {
@@ -47,48 +49,65 @@ namespace azure_iot_hub_benchmark
             {
                 string IoTHub = opts.IotHubConnectionString.Split(';')[0].Split('=')[1];
                 Console.WriteLine("Creating Devices");
-                createDevices(opts.DeviceCount, opts.IotHubConnectionString);
-                Console.WriteLine($"Starting Devices: DeviceCount: {opts.DeviceCount} MaxMessages:{opts.MaxMessages} MessageSize:{opts.MessageSize}");
+                createDevices(opts.DeviceCount, opts.IotHubConnectionString).Wait();
+                if(opts.MessageSize > 262143){
+                    Console.WriteLine("Setting MessageSize to maximum of 262143");
+                    MessageSize = 262143;
+                } else {
+                    MessageSize = opts.MessageSize;
+                }
+                Console.WriteLine($"Starting Devices: DeviceCount: {opts.DeviceCount} MaxMessages:{opts.MaxMessages} MessageSize:{MessageSize}");
                 DateTime startTime = DateTime.Now;
                 Task[] tasks = new Task[opts.DeviceCount];
                 for (int deviceNumber = 1; deviceNumber <= opts.DeviceCount; deviceNumber++)
                 {
-                    tasks[deviceNumber-1] = startClient(IoTHub, IoTDevicePrefix, deviceNumber, commonKey, opts.MaxMessages, opts.MessageSize);
+                    tasks[deviceNumber-1] = startClient(IoTHub, IoTDevicePrefix, deviceNumber, commonKey, opts.MaxMessages, MessageSize);
                 }
 
                 Task.WaitAll(tasks);
                 DateTime endTime = DateTime.Now;
                 Console.WriteLine("All Messages are sent");
                 Console.WriteLine("Total Clients: " + opts.DeviceCount);
+                Console.WriteLine("Message Size: " + opts.MessageSize);
                 Console.WriteLine("Total Messages Sent: " + opts.DeviceCount * opts.MaxMessages);
                 Console.WriteLine("Total Execution Time: " + (endTime - startTime).TotalSeconds + " seconds");
                 Console.WriteLine("Messages Per Second: " + opts.DeviceCount * opts.MaxMessages / (endTime - startTime).TotalSeconds);
                 Thread.Sleep(7000);
-                Task.WaitAny(
-                    new Task[] { deleteDevices(opts.DeviceCount, opts.IotHubConnectionString) }
-                    );
+                deleteDevices(opts.DeviceCount, opts.IotHubConnectionString).Wait();
             });
         }
  
         static async Task startClient(string IoTHub, string IoTDevicePrefix, int deviceNumber, string commonKey, int maxMessages, int messageSize)
         {
             string connectionString = "HostName=" + IoTHub + ";DeviceId=" + IoTDevicePrefix + deviceNumber + ";SharedAccessKey=" + commonKey;
-            DeviceClient device = DeviceClient.CreateFromConnectionString(connectionString, Microsoft.Azure.Devices.Client.TransportType.Mqtt);
-            await device.OpenAsync();
-            int mycounter = 1;
-            Console.WriteLine("Device " + IoTDevicePrefix + deviceNumber + " started");
- 
-            while (mycounter <= maxMessages)
+            DateTime startTime = DateTime.Now;
+            try
             {
-                var IoTMessage = new Microsoft.Azure.Devices.Client.Message(new byte[messageSize]);
-                await device.SendEventAsync(IoTMessage);
-                mycounter++;
+                DeviceClient device = DeviceClient.CreateFromConnectionString(connectionString, Microsoft.Azure.Devices.Client.TransportType.Mqtt);
+                await device.OpenAsync();
+                int mycounter = 1;
+                Console.WriteLine("Device " + IoTDevicePrefix + deviceNumber + " started");
+    
+                while (mycounter <= maxMessages)
+                {
+                    var IoTMessage = new Microsoft.Azure.Devices.Client.Message(new byte[messageSize]);
+                    await device.SendEventAsync(IoTMessage);
+                    mycounter++;
+                }
+                await device.CloseAsync();
+                DateTime endTime = DateTime.Now;
+                Console.WriteLine("Device " + IoTDevicePrefix + deviceNumber + ": Messages Per Second: " + maxMessages / (endTime - startTime).TotalSeconds);
+                Console.WriteLine("Device " + IoTDevicePrefix + deviceNumber + " ended");
+            } 
+            catch (Exception er)
+            {
+                Console.WriteLine("  Error starting device: " + IoTDevicePrefix + deviceNumber + " error: " + er.InnerException.Message);
             }
-            await device.CloseAsync();
-            Console.WriteLine("Device " + IoTDevicePrefix + deviceNumber + " ended");
+            
+            
         }
  
-        static void createDevices(int number, string iotHubConnectionString)
+        static async Task createDevices(int number, string iotHubConnectionString)
         {
             for (int i = 1; i <= number; i++)
             {
@@ -99,7 +118,7 @@ namespace azure_iot_hub_benchmark
                 mydevice.Authentication.SymmetricKey.SecondaryKey = commonKey;
                 try
                 {
-                    registryManager.AddDeviceAsync(mydevice).Wait();
+                    await registryManager.AddDeviceAsync(mydevice);
                     Console.WriteLine("Adding device: " + IoTDevicePrefix + i.ToString());
                 }
                 catch (Exception er)
@@ -118,7 +137,7 @@ namespace azure_iot_hub_benchmark
                 try
                 {
                     Device mydevice = await registryManager.GetDeviceAsync(IoTDevicePrefix + i.ToString());
-                    registryManager.RemoveDeviceAsync(mydevice).Wait();
+                    await registryManager.RemoveDeviceAsync(mydevice);
                     Console.WriteLine("Deleting device " + IoTDevicePrefix + i.ToString());
                 }
                 catch (Exception er) {

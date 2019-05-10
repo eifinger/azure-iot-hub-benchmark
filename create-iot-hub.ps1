@@ -23,8 +23,14 @@ param
     [ValidateSet("B1", "B2", "B3", "S1", "S2", "S3")]
     [string] $Sku,
 
-    [Parameter(Mandatory = $True)]
-    [int16] $PartitionCount
+    [Parameter(Mandatory = $False)]
+    [int16] $PartitionCount = 4,
+
+    [Parameter(Mandatory = $False)]
+    [string] $DeploymentBaseName= "IoTHubTest",
+
+    [Parameter(Mandatory = $False)]
+    [string] $ParamFile= ".\iothubparams.json"
 )
 
 $ErrorActionPreference = "Stop"
@@ -110,7 +116,7 @@ Progress can be monitored from the Azure Portal (http://portal.azure.com).
     2. In the Deployments page open deployment $deploymentName.
 "@
 
-    $deployment = New-AzResourceGroupDeployment -Name $deploymentName -ResourceGroupName $resourceGroup.ResourceGroupName -TemplateFile '.\iothubparams.json' -TemplateParameterObject $params
+    $deployment = New-AzResourceGroupDeployment -Name $deploymentName -ResourceGroupName $resourceGroup.ResourceGroupName -TemplateFile $ParamFile -TemplateParameterObject $params
 
     Write-Host @"
 `nThe hub is ready
@@ -144,13 +150,13 @@ Function Get-ResourceGroup() {
 Function Get-UniqueName() {
 
     $randomSuffix = -join ((65..90) + (97..122) | Get-Random -Count 5 | ForEach-Object {[char]$_})
-    $deploymentName = "BenchmarktestIoTHub-$randomSuffix"
+    $deploymentName = "$DeploymentBaseName-$randomSuffix"
     try{
     $iotHub = Get-AzIotHub -ResourceGroupName $ResourceGroupName -Name $deploymentName
     } catch{}
     while($iotHub){
         $randomSuffix = -join ((65..90) + (97..122) | Get-Random -Count 5 | ForEach-Object {[char]$_})
-        $deploymentName = "BenchmarktestIoTHub-$randomSuffix"
+        $deploymentName = "$DeploymentBaseName-$randomSuffix"
         $iotHub = Get-AzIotHub -ResourceGroupName $ResourceGroupName -Name $deploymentName
     }
     return $deploymentName
