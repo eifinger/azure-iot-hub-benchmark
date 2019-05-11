@@ -38,7 +38,7 @@ foreach($location in $Locations)
     DeviceCount   :  $deviceCount
     MaxMessages   :  $maxMessages
     MessagesSize  :  $messageSize
-    TrasnportType :  $transportType
+    TransportType :  $transportType
 
 "@
                         Invoke-Expression "$PSScriptRoot\run-benchmark.ps1 -ResourceGroupName '$ResourceGroupName' -Location '$location' -Sku $sku -PartitionCount $partitionCount -DeviceCount $deviceCount -MaxMessages $maxMessages -MessageSize $messageSize -TransportType $transportType -Force"
