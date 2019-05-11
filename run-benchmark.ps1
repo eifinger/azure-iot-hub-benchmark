@@ -36,6 +36,10 @@ param
     [int32] $MessageSize = 265000,
 
     [Parameter(Mandatory = $False)]
+    [ValidateSet("MQTT", "AMQP", "HTTP")]
+    [string] $TransportType = "MQTT",
+
+    [Parameter(Mandatory = $False)]
     [switch] $Force = $False
 
 )
@@ -91,7 +95,7 @@ $fileName = $PSScriptRoot + "\benchmark_results\benchmark_$($Location.Replace(' 
 
 Start-Process -FilePath "dotnet" `
     -WorkingDirectory "$PSScriptRoot" `
-    -ArgumentList "$PSScriptRoot\csharp\azure-iot-hub-benchmark\bin\Debug\netcoreapp2.2\azure-iot-hub-benchmark.dll --iothubconnectionstring $connectionString --devicecount $DeviceCount --maxmessages $MaxMessages --messagesize $MessageSize --benchmarkfilenamepath $fileName" `
+    -ArgumentList "$PSScriptRoot\csharp\azure-iot-hub-benchmark\bin\Debug\netcoreapp2.2\azure-iot-hub-benchmark.dll --iothubconnectionstring $connectionString --devicecount $DeviceCount --maxmessages $MaxMessages --messagesize $MessageSize --benchmarkfilenamepath $fileName --transporttype $TransportType" `
     -NoNewWindow `
     -Wait
 

@@ -10,6 +10,7 @@ $DeviceCounts = 10, 20, 40, 80
 $MaxMessages = 10, 20, 40, 80, 160
 #$MessageSizes = 50, 100, 200, 400, 800, 1600, 3200, 6400, 12800, 25600
 $MessageSizes = 50, 100, 800, 1600, 6400
+$TransportTypes = "MQTT", "AMQP", "HTTP"
 
 $ResourceGroupName = "BenchmarkTest"
 
@@ -25,7 +26,9 @@ foreach($location in $Locations)
                 {
                     foreach($messageSize in $MessageSizes)
                     {
-                        Write-Host @"
+                        foreach($transportType in $TransportTypes)
+                        {
+                                                    Write-Host @"
 `nStarting Benchmark for:
 
     Location      :  $location
@@ -35,9 +38,11 @@ foreach($location in $Locations)
     DeviceCount   :  $deviceCount
     MaxMessages   :  $maxMessages
     MessagesSize  :  $messageSize
+    TrasnportType :  $transportType
 
 "@
-                        Invoke-Expression "$PSScriptRoot\run-benchmark.ps1 -ResourceGroupName '$ResourceGroupName' -Location '$location' -Sku $sku -PartitionCount $partitionCount -DeviceCount $deviceCount -MaxMessages $maxMessages -MessageSize $messageSize -Force"
+                        Invoke-Expression "$PSScriptRoot\run-benchmark.ps1 -ResourceGroupName '$ResourceGroupName' -Location '$location' -Sku $sku -PartitionCount $partitionCount -DeviceCount $deviceCount -MaxMessages $maxMessages -MessageSize $messageSize -TransportType $transportType -Force"
+                        }
                    }
                 }
             }

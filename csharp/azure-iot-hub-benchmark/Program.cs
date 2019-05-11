@@ -19,23 +19,24 @@ namespace azure_iot_hub_benchmark
             Required = true,
             HelpText = "The iothubowner ConnectionString. Example \"HostName=myhub.azure-devices.net;SharedAccessKeyName=iothubowner;SharedAccessKey=0U1REMOVEDvrfUDo=\"")]
         public string IotHubConnectionString { get; set; }
-
         [Option(
             Required = false,
             Default = "benchmarkfile",
             HelpText = "The full file path of the file were benchmark results are stored")]
         public string BenchmarkFileNamePath { get; set; }
-
+        [Option(
+            Required = false,
+            Default = "MQTT",
+            HelpText = "The Transport Type to use. MQTT,AMQP,HTTP")]
+        public string TransportType { get; set; }
         [Option(
             Default = 100,
             HelpText = "how many devices we will create and clients we will launch")]
         public short DeviceCount { get; set; }
-
         [Option(
             Default = 20,
             HelpText = "once this count of messages are sent, the client shuts down")]
         public int MaxMessages { get; set; }
-
         [Option(
             Default = 20,
             HelpText = "Size of a single message in byte")]
@@ -51,6 +52,7 @@ namespace azure_iot_hub_benchmark
         public int MessageSize { get; set; }
         public double MessagePerSecond { get; set; }
         public List<DeviceBenchmarkEntry> DeviceBenchmarks { get; set; }
+        public string TransportType {get; set;}
     }
     class DeviceBenchmarkEntry
     {
@@ -71,6 +73,8 @@ namespace azure_iot_hub_benchmark
         const int MAXMESSAGESIZE = 262143;
 
         static int MessageSize;
+
+        static Microsoft.Azure.Devices.Client.TransportType TransportType;
  
         static void Main(string[] args)
         {
@@ -80,13 +84,29 @@ namespace azure_iot_hub_benchmark
                 string IoTHub = opts.IotHubConnectionString.Split(';')[0].Split('=')[1];
                 Console.WriteLine("Creating Devices");
                 CreateDevices(opts.DeviceCount, opts.IotHubConnectionString).Wait();
+                // Messagesize
                 if(opts.MessageSize > 262143){
                     Console.WriteLine($"Setting MessageSize to maximum of {MAXMESSAGESIZE}");
                     MessageSize = MAXMESSAGESIZE;
                 } else {
                     MessageSize = opts.MessageSize;
                 }
-                Console.WriteLine($"Starting Devices: DeviceCount: {opts.DeviceCount} MaxMessages:{opts.MaxMessages} MessageSize:{MessageSize}");
+                // Transporttype
+                switch(opts.TransportType){
+                    case "MQTT":
+                        TransportType = Microsoft.Azure.Devices.Client.TransportType.Mqtt;
+                        break;
+                    case "AMQP":
+                        TransportType = Microsoft.Azure.Devices.Client.TransportType.Amqp;
+                        break;
+                    case "HTTP":
+                        TransportType = Microsoft.Azure.Devices.Client.TransportType.Http1;
+                        break;
+                    default:
+                        TransportType = Microsoft.Azure.Devices.Client.TransportType.Mqtt;
+                        break;
+                }
+                Console.WriteLine($"Starting Devices: DeviceCount: {opts.DeviceCount} MaxMessages:{opts.MaxMessages} MessageSize:{MessageSize} TransportType:{TransportType}");
                 DateTime startTime = DateTime.Now;
                 BenchmarkEntry benchmarkEntry = new BenchmarkEntry()
                 {
@@ -94,13 +114,13 @@ namespace azure_iot_hub_benchmark
                     DeviceCount = opts.DeviceCount,
                     MaxMessages = opts.MaxMessages,
                     MessageSize = MessageSize,
-                    DeviceBenchmarks = new List<DeviceBenchmarkEntry>()
-
+                    DeviceBenchmarks = new List<DeviceBenchmarkEntry>(),
+                    TransportType = opts.TransportType
                 };
                 Task[] tasks = new Task[opts.DeviceCount];
                 for (int deviceNumber = 1; deviceNumber <= opts.DeviceCount; deviceNumber++)
                 {
-                    tasks[deviceNumber-1] = StartClient(IoTHub, IoTDevicePrefix, deviceNumber, CommonKey, opts.MaxMessages, MessageSize).ContinueWith(task =>
+                    tasks[deviceNumber-1] = StartClient(IoTHub, IoTDevicePrefix, deviceNumber, CommonKey, opts.MaxMessages, MessageSize, TransportType).ContinueWith(task =>
                     {
                         benchmarkEntry.DeviceBenchmarks.Add(task.Result);
                     });
@@ -123,14 +143,14 @@ namespace azure_iot_hub_benchmark
             });
         }
  
-        static async Task<DeviceBenchmarkEntry> StartClient(string IoTHub, string IoTDevicePrefix, int deviceNumber, string commonKey, int maxMessages, int messageSize)
+        static async Task<DeviceBenchmarkEntry> StartClient(string IoTHub, string IoTDevicePrefix, int deviceNumber, string commonKey, int maxMessages, int messageSize, Microsoft.Azure.Devices.Client.TransportType transportType)
         {
             string connectionString = "HostName=" + IoTHub + ";DeviceId=" + IoTDevicePrefix + deviceNumber + ";SharedAccessKey=" + commonKey;
             string deviceName = IoTDevicePrefix + deviceNumber;
             DateTime startTime = DateTime.Now;
             try
             {
-                DeviceClient device = DeviceClient.CreateFromConnectionString(connectionString, Microsoft.Azure.Devices.Client.TransportType.Mqtt);
+                DeviceClient device = DeviceClient.CreateFromConnectionString(connectionString, transportType);
                 await device.OpenAsync();
                 int mycounter = 1;
                 Console.WriteLine($"Device {deviceName} started");
