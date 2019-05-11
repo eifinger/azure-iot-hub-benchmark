@@ -33,7 +33,10 @@ param
     [int16] $MaxMessages = 50,
 
     [Parameter(Mandatory = $False)]
-    [int32] $MessageSize = 265000
+    [int32] $MessageSize = 265000,
+
+    [Parameter(Mandatory = $False)]
+    [switch] $Force = $False
 
 )
 
@@ -72,15 +75,31 @@ Write-Host "Starting Benchmark"
 Connect-AzureSubscription
 
 Write-Host "Creating IoT Hub"
-$iotHubName = Invoke-Expression "$PSScriptRoot\create-iot-hub.ps1 -ResourceGroupName '$ResourceGroupName' -Location '$Location' -Sku $Sku -PartitionCount $PartitionCount"
+if($Force)
+{
+    $iotHubName = Invoke-Expression "$PSScriptRoot\create-iot-hub.ps1 -ResourceGroupName '$ResourceGroupName' -Location '$Location' -Sku $Sku -PartitionCount $PartitionCount -Force"
+}
+else
+{
+    $iotHubName = Invoke-Expression "$PSScriptRoot\create-iot-hub.ps1 -ResourceGroupName '$ResourceGroupName' -Location '$Location' -Sku $Sku -PartitionCount $PartitionCount"
+}
 
 $connectionString = $(Get-AzIotHubConnectionString -ResourceGroupName $ResourceGroupName -Name $iotHubName -KeyName "iothubowner").PrimaryConnectionString
 Write-Host "Starting CSharp Benchmark"
 
+$fileName = $PSScriptRoot + "\benchmark_$($Location.Replace(' ', '_'))_$($Sku)_$($PartitionCount)_$($DeviceCount)_$($MaxMessages)_$($MessageSize)_$((Get-Date).ToString("yyyyMMdd_HHmmss")).json"
+
 Start-Process -FilePath "dotnet" `
     -WorkingDirectory "$PSScriptRoot" `
-    -ArgumentList "$PSScriptRoot\csharp\azure-iot-hub-benchmark\bin\Debug\netcoreapp2.2\azure-iot-hub-benchmark.dll --iothubconnectionstring $connectionString --devicecount $DeviceCount --maxmessages $MaxMessages --messagesize $MessageSize" `
+    -ArgumentList "$PSScriptRoot\csharp\azure-iot-hub-benchmark\bin\Debug\netcoreapp2.2\azure-iot-hub-benchmark.dll --iothubconnectionstring $connectionString --devicecount $DeviceCount --maxmessages $MaxMessages --messagesize $MessageSize --benchmarkfilenamepath $fileName" `
     -NoNewWindow `
     -Wait
 
-Invoke-Expression "$PSScriptRoot\delete-resource-group.ps1 -ResourceGroupName '$ResourceGroupName'"
+if($Force)
+{
+    Invoke-Expression "$PSScriptRoot\delete-resource-group.ps1 -ResourceGroupName '$ResourceGroupName' -Force"
+}
+else
+{
+    Invoke-Expression "$PSScriptRoot\delete-resource-group.ps1 -ResourceGroupName '$ResourceGroupName'"
+}

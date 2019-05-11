@@ -13,7 +13,10 @@
 param
 (
     [Parameter(Mandatory = $True)]
-    [string] $ResourceGroupName
+    [string] $ResourceGroupName,
+
+    [Parameter(Mandatory = $False)]
+    [switch] $Force = $False
 )
 
 $ErrorActionPreference = "Stop"
@@ -73,7 +76,9 @@ Are you sure you want to continue?
 # Main 
 # 
 Connect-AzureSubscription
-Confirm-Delete
+if (!$Force){
+    Confirm-Delete
+} 
 Write-Host "Removing Resource Group $ResourceGroupName and all Resources in it"
 Remove-AzResourceGroup -Name $ResourceGroupName -Force
 Write-Host "$ResourceGroupName successfully deleted"

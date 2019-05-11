@@ -30,7 +30,10 @@ param
     [string] $DeploymentBaseName= "IoTHubTest",
 
     [Parameter(Mandatory = $False)]
-    [string] $ParamFile= ".\iothubparams.json"
+    [string] $ParamFile= ".\iothubparams.json",
+
+    [Parameter(Mandatory = $False)]
+    [switch] $Force = $False
 )
 
 $ErrorActionPreference = "Stop"
@@ -173,7 +176,9 @@ $subName = $(Get-AzContext).Subscription.Name
 
 $SubscriptionId = Get-AzSubscription
 
-Confirm-Create
+if (!$Force){
+    Confirm-Create
+} 
 
 $resourceGroup = Get-ResourceGroup
 
