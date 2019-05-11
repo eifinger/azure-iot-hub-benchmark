@@ -4,6 +4,21 @@ WIP Benchmark the troughput of the Azure IoTHub and figure out which variables a
 
 ## Usage
 
+### Prerequisites
+
+#### Linux
+
+1. Install Powershell Core: https://docs.microsoft.com/en-us/powershell/scripting/install/installing-powershell-core-on-linux?view=powershell-6
+
+#### All
+
+1. If not already done install dotnet core SDK: https://dotnet.microsoft.com/download
+1. If not already done install the Azure Powershell Module
+
+```powershell
+Install-Module -Name Az -AllowClobber
+```
+
 ### Clone and Build
 
 ```powershell
@@ -12,6 +27,14 @@ cd azure-iot-hub-benchmark
 cd csharp
 dotnet publish
 cd ..
+```
+
+### (Optional)
+
+If not already done install the Azure Powershell Module
+
+```powershell
+Install-Module -Name Az -AllowClobber
 ```
 
 ### Configure and Run
