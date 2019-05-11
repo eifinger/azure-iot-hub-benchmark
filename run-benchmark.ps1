@@ -87,7 +87,7 @@ else
 $connectionString = $(Get-AzIotHubConnectionString -ResourceGroupName $ResourceGroupName -Name $iotHubName -KeyName "iothubowner").PrimaryConnectionString
 Write-Host "Starting CSharp Benchmark"
 
-$fileName = $PSScriptRoot + "\benchmark_$($Location.Replace(' ', '_'))_$($Sku)_$($PartitionCount)_$($DeviceCount)_$($MaxMessages)_$($MessageSize)_$((Get-Date).ToString("yyyyMMdd_HHmmss")).json"
+$fileName = $PSScriptRoot + "\benchmark_results\benchmark_$($Location.Replace(' ', '_'))_$($Sku)_$($PartitionCount)_$($DeviceCount)_$($MaxMessages)_$($MessageSize)_$((Get-Date).ToString("yyyyMMdd_HHmmss")).json"
 
 Start-Process -FilePath "dotnet" `
     -WorkingDirectory "$PSScriptRoot" `
